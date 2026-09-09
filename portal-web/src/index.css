@@ -1,0 +1,153 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "Microsoft YaHei", "微软雅黑", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  background: #f5f7fa;
+  color: #303133;
+}
+
+a {
+  color: #4096ff;
+  text-decoration: none;
+}
+
+/* 卡片统一阴影与圆角 */
+.campus-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* 社团网格 */
+.club-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.club-card-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.club-card-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(64, 150, 255, 0.18);
+}
+
+.club-card-poster {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  display: block;
+}
+
+/* 过程性内容左右布局 */
+.article-row {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.article-row:last-child {
+  border-bottom: none;
+}
+
+.article-user {
+  flex: 0 0 120px;
+  text-align: center;
+}
+
+.article-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.article-content img,
+.article-content video {
+  max-width: 100%;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+/* 顶部导航 */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+/* Logo 预留区（最左）：public/logo.png 存在时显示图片，否则回落文字占位 */
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.app-logo-img {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+
+.app-logo-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #e6f0ff;
+  color: #4096ff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-logo-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: #4096ff;
+  letter-spacing: 1px;
+}
+
+/* 右侧用户区 / 登录入口 */
+.app-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+.app-user-name {
+  color: #303133;
+}
+
+.app-login-tip {
+  font-weight: 600;
+}
+
+.page-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}

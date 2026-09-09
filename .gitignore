@@ -1,0 +1,36 @@
+# ---------- 构建产物 ----------
+backend/target/
+portal-web/dist/
+admin-web/dist/
+portal-web/node_modules/
+admin-web/node_modules/
+node_modules/
+
+# ---------- 日志 ----------
+*.log
+backend/build.log
+backend/app.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---------- 本地数据库（H2）----------
+*.mv.db
+*.trace.db
+*.h2.db
+
+# ---------- 本地上传的文件 ----------
+backend/uploads/
+uploads/
+
+# ---------- 编辑器 / 系统 ----------
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# ---------- 环境变量 ----------
+.env
+.env.local
+.env.*.local

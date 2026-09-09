@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    # 生产环境 MySQL（不含 root 等高危权限，使用独立业务账号）
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:campus_club}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USER:campus_app}
+    password: ${DB_PASSWORD:campus_app_pwd}
+  sql:
+    init:
+      mode: never
+
+storage:
+  type: minio
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:minioadmin}
+    secret-key: ${MINIO_SECRET_KEY:minioadmin}
+    bucket: ${MINIO_BUCKET:campus-club}
