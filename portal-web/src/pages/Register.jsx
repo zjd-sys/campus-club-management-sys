@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, Form, Input, Button, Select, Radio, message } from 'antd'
+import { Card, Form, Input, Button, Select, message } from 'antd'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../utils/request'
 import { setToken } from '../utils/auth'
@@ -16,7 +16,8 @@ export default function Register() {
         username: values.username,
         password: values.password,
         name: values.name,
-        role: values.role, // 'student' | 'teacher'
+        // 门户注册固定为学生账号；教师权限由后台（管理员）分配，前端不可注册为教师
+        role: 'student',
         gradeId: values.gradeId ? Number(values.gradeId) : null,
         clazzId: values.clazzId ? Number(values.clazzId) : null,
         age: values.age ? Number(values.age) : null,
@@ -59,11 +60,11 @@ export default function Register() {
           <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
             <Input placeholder="真实姓名" />
           </Form.Item>
-          <Form.Item name="role" label="角色" rules={[{ required: true, message: '请选择角色' }]}>
-            <Radio.Group>
-              <Radio.Button value="student">学生</Radio.Button>
-              <Radio.Button value="teacher">教师</Radio.Button>
-            </Radio.Group>
+          <Form.Item
+            label="身份"
+            extra="注册即学生账号；教师账号由后台管理员分配"
+          >
+            <Input value="学生" disabled />
           </Form.Item>
           <Form.Item name="gradeId" label="年级">
             <Input type="number" placeholder="年级 ID（可选）" />

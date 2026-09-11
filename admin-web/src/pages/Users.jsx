@@ -22,7 +22,13 @@ import {
   getClazzes,
   getClubs
 } from '../api'
-import { PAGE_SIZE, ROLE_OPTIONS, GENDER_OPTIONS, STATUS_OPTIONS, STATUS_TAG } from '../utils/constants'
+import {
+  PAGE_SIZE,
+  ROLE_OPTIONS,
+  GENDER_OPTIONS,
+  USER_STATUS_OPTIONS,
+  USER_STATUS_TAG
+} from '../utils/constants'
 
 const emptyForm = {
   username: '',
@@ -34,7 +40,7 @@ const emptyForm = {
   age: undefined,
   gender: undefined,
   clubId: undefined,
-  status: 'active'
+  status: 'normal'
 }
 
 export default function Users() {
@@ -154,36 +160,37 @@ export default function Users() {
   }
 
   const columns = [
-    { title: '账号', dataIndex: 'username', key: 'username' },
-    { title: '姓名', dataIndex: 'name', key: 'name' },
+    { title: '账号', dataIndex: 'username', key: 'username', width: 120 },
+    { title: '姓名', dataIndex: 'name', key: 'name', width: 90 },
     {
       title: '角色',
       dataIndex: 'role',
       key: 'role',
+      width: 90,
       render: (r) => {
         const cfg = ROLE_OPTIONS.find((o) => o.value === r)
         return <Tag color={r === 'admin' ? 'red' : r === 'teacher' ? 'blue' : 'green'}>{cfg?.label || r}</Tag>
       }
     },
-    { title: '年级', dataIndex: 'gradeName', key: 'gradeName', render: (v) => v || '-' },
-    { title: '班级', dataIndex: 'clazzName', key: 'clazzName', render: (v) => v || '-' },
-    { title: '年龄', dataIndex: 'age', key: 'age', render: (v) => v || '-' },
-    { title: '性别', dataIndex: 'gender', key: 'gender', render: (v) => (v === 'male' ? '男' : v === 'female' ? '女' : '-') },
-    { title: '所属社团', dataIndex: 'clubName', key: 'clubName', render: (v) => v || '-' },
+    { title: '年级', dataIndex: 'gradeName', key: 'gradeName', width: 100, render: (v) => v || '-' },
+    { title: '班级', dataIndex: 'clazzName', key: 'clazzName', width: 100, render: (v) => v || '-' },
+    { title: '年龄', dataIndex: 'age', key: 'age', width: 70, render: (v) => v || '-' },
+    { title: '性别', dataIndex: 'gender', key: 'gender', width: 70, render: (v) => (v === 'male' ? '男' : v === 'female' ? '女' : '-') },
+    { title: '所属社团', dataIndex: 'clubName', key: 'clubName', width: 140, render: (v) => v || '-' },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      width: 90,
       render: (s) => {
-        const cfg = STATUS_TAG[s] || { color: 'default', text: s }
+        const cfg = USER_STATUS_TAG[s] || { color: 'default', text: s }
         return <Tag color={cfg.color}>{cfg.text}</Tag>
       }
     },
     {
       title: '操作',
       key: 'action',
-      fixed: 'right',
-      width: 150,
+      width: 140,
       render: (_, record) => (
         <Space>
           <Button type="link" size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
@@ -229,7 +236,6 @@ export default function Users() {
         columns={columns}
         dataSource={data}
         loading={loading}
-        scroll={{ x: 1100 }}
         pagination={{
           current: page,
           pageSize: PAGE_SIZE,
@@ -297,7 +303,7 @@ export default function Users() {
             />
           </Form.Item>
           <Form.Item name="status" label="状态" rules={[{ required: true }]}>
-            <Select options={STATUS_OPTIONS} />
+            <Select options={USER_STATUS_OPTIONS} />
           </Form.Item>
         </Form>
       </Modal>

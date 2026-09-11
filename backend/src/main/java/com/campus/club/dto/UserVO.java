@@ -20,6 +20,8 @@ public class UserVO {
     private Long clubId;
     private String clubName;
     private String status;
+    /** 管理员层级：super / normal（仅 role=admin 有意义） */
+    private String adminLevel;
     private LocalDateTime createTime;
 
     public static UserVO from(com.campus.club.entity.User u) {
@@ -34,6 +36,7 @@ public class UserVO {
         v.setGender(u.getGender());
         v.setClubId(u.getClubId());
         v.setStatus(u.getStatus());
+        v.setAdminLevel(u.getAdminLevel());
         v.setCreateTime(u.getCreateTime());
         return v;
     }

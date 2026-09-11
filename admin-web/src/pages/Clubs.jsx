@@ -12,11 +12,17 @@ import {
   Avatar,
   Popconfirm,
   Image,
+  Upload,
   message,
   Tag
 } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined } from '@ant-design/icons'
-import { getClubs, createClub, updateClub, deleteClub, getClubMembers, getUsers } from '../api'
+import {
+  PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, UploadOutlined
+} from '@ant-design/icons'
+import {
+  getClubs, createClub, updateClub, deleteClub, getClubMembers, getUsers, uploadFile
+} from '../api'
+import { fileUrl } from '../utils/request'
 import { PAGE_SIZE, STATUS_OPTIONS, STATUS_TAG } from '../utils/constants'
 
 const emptyForm = {
@@ -133,28 +139,30 @@ export default function Clubs() {
       title: '海报',
       dataIndex: 'poster',
       key: 'poster',
-      width: 90,
+      width: 80,
       render: (v) =>
         v ? (
-          <Image src={v} width={56} height={56} style={{ objectFit: 'cover', borderRadius: 4 }} />
+          <Image src={fileUrl(v)} width={56} height={56} style={{ objectFit: 'cover', borderRadius: 4 }} />
         ) : (
           <Avatar shape="square" size={56}>
             社
           </Avatar>
         )
     },
-    { title: '名称', dataIndex: 'name', key: 'name' },
+    { title: '名称', dataIndex: 'name', key: 'name', width: 140 },
     { title: '简介', dataIndex: 'intro', key: 'intro', ellipsis: true, render: (v) => v || '-' },
     {
       title: '负责教师',
       dataIndex: 'teacherId',
       key: 'teacherId',
+      width: 120,
       render: (id) => teachers.find((t) => t.id === id)?.name || id || '-'
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      width: 90,
       render: (s) => {
         const cfg = STATUS_TAG[s] || { color: 'default', text: s }
         return <Tag color={cfg.color}>{cfg.text}</Tag>
@@ -163,7 +171,6 @@ export default function Clubs() {
     {
       title: '操作',
       key: 'action',
-      fixed: 'right',
       width: 200,
       render: (_, record) => (
         <Space>
@@ -201,7 +208,6 @@ export default function Clubs() {
         columns={columns}
         dataSource={data}
         loading={loading}
-        scroll={{ x: 900 }}
         pagination={{
           current: page,
           pageSize: PAGE_SIZE,
@@ -227,8 +233,27 @@ export default function Clubs() {
           <Form.Item name="intro" label="简介">
             <Input.TextArea rows={3} placeholder="社团简介" />
           </Form.Item>
-          <Form.Item name="poster" label="海报 URL">
-            <Input placeholder="https://..." />
+          <Form.Item label="社团海报" extra="可直接上传图片，或填写资源引用 / 外部 URL">
+            <Space.Compact style={{ width: '100%' }}>
+              <Form.Item name="poster" noStyle>
+                <Input placeholder="/files/... 或 https://..." />
+              </Form.Item>
+              <Upload
+                showUploadList={false}
+                customRequest={async ({ file, onSuccess, onError }) => {
+                  try {
+                    const res = await uploadFile(file, 'posters')
+                    form.setFieldValue('poster', res?.url || '')
+                    message.success('海报已上传')
+                    onSuccess?.({})
+                  } catch (e) {
+                    onError?.(e)
+                  }
+                }}
+              >
+                <Button icon={<UploadOutlined />}>上传</Button>
+              </Upload>
+            </Space.Compact>
           </Form.Item>
           <Form.Item name="teacherId" label="负责教师">
             <Select

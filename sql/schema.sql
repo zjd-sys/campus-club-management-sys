@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS `sys_user` (
     `status`      VARCHAR(20)  DEFAULT 'normal'        COMMENT 'normal/disabled',
     `fail_count`  INT          DEFAULT 0               COMMENT '连续登录失败次数',
     `lock_until`  DATETIME                             COMMENT '锁定截止时刻',
+    `admin_secret` VARCHAR(120)                        COMMENT '管理员独立密钥(BCrypt)；仅 role=admin 使用',
+    `admin_level` VARCHAR(20)  DEFAULT 'normal'        COMMENT '管理员层级 super=超级管理员/normal=普通管理员；仅 role=admin 使用',
     `create_time` DATETIME                             COMMENT '创建时间',
     `version`     INT          DEFAULT 0               COMMENT '乐观锁',
     `deleted`     INT          DEFAULT 0               COMMENT '逻辑删除标记',
@@ -122,3 +124,40 @@ CREATE TABLE IF NOT EXISTS `captcha` (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '图形验证码表';
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- 页面访问日志：用于统计每日访问次数 / 站点日活量（DAU）
+CREATE TABLE IF NOT EXISTS visit_log (
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    path        VARCHAR(255) COMMENT '访问页面路径',
+    user_id     BIGINT COMMENT '登录用户ID（游客为NULL）',
+    visit_date  DATE          COMMENT '访问日期（按天聚合）',
+    create_time DATETIME,
+    deleted     INT DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_visit_date ON visit_log(visit_date);
+
+-- ============ 增量：管理员独立密钥 与 系统配置（v2） ============
+-- 已有库执行：ALTER TABLE sys_user ADD COLUMN admin_secret VARCHAR(120) COMMENT '管理员独立密钥(BCrypt)';
+-- 全新初始化时，上面的 sys_user 建表语句已包含该列（见 backend/src/main/resources/db/schema.sql）。
+
+-- ============ 增量：管理员层级（v3） ============
+-- 超级管理员可管理整个管理员组；普通管理员之间互不可管理，仅可修改自身令牌。
+-- 已有库执行：
+--   ALTER TABLE sys_user ADD COLUMN admin_level VARCHAR(20) DEFAULT 'normal'
+--     COMMENT '管理员层级 super=超级管理员/normal=普通管理员；仅 role=admin 使用';
+--   UPDATE sys_user SET admin_level = 'super' WHERE role = 'admin' AND username = 'admin';
+-- 说明：历史数据 admin_level 为空时后端按「超级管理员」兼容处理，因此升级后不会出现无人可管的空档。
+-- 全新初始化时，上面的 sys_user 建表语句已包含该列。
+
+CREATE TABLE IF NOT EXISTS sys_config (
+    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
+    site_name      VARCHAR(128),
+    logo_url       VARCHAR(1000) COMMENT '站点 Logo 资源引用（相对路径或对象存储 URL）',
+    background_url VARCHAR(1000) COMMENT '全站背景图资源引用',
+    banner_url     VARCHAR(1000) COMMENT '首页横幅/轮播图资源引用',
+    theme_color    VARCHAR(32),
+    sub_title      VARCHAR(255),
+    footer_text    VARCHAR(500),
+    update_time    DATETIME,
+    deleted        INT DEFAULT 0
+) COMMENT='系统站点配置（单行）';

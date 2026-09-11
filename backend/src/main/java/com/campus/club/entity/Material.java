@@ -19,6 +19,8 @@ public class Material {
     private String imageUrl;
     /** 视频访问URL */
     private String videoUrl;
+    /** 文档访问URL（可多份，逗号分隔） */
+    private String docUrl;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime submitTime;
     /** 前端展示状态：1 公开 / 0 隐藏 */

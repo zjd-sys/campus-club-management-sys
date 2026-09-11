@@ -2,7 +2,26 @@ import axios from 'axios'
 import { message } from 'antd'
 
 export const TOKEN_KEY = 'portal_token'
-export const BASE_URL = 'http://localhost:8080/api/portal'
+
+/**
+ * 接口基址：优先构建期环境变量 VITE_API_BASE_URL；
+ * 缺省使用「同源相对路径」，开发环境经 Vite 代理转发到后端，
+ * 生产环境由反向代理（Nginx 等）按 /api 前缀转发，避免任何硬编码域名 / 端口。
+ */
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/portal'
+
+/**
+ * 静态文件（图片/视频/文档）基址：默认同源相对路径（经 /files 代理）。
+ * 若文件托管在独立域名 / CDN / 对象存储，用 VITE_FILE_BASE_URL 覆盖。
+ */
+export const FILE_BASE_URL = import.meta.env.VITE_FILE_BASE_URL || ''
+
+/** 将后端返回的资源引用解析为可直接使用的 URL（兼容 data:/http: 与相对路径） */
+export function fileUrl(u) {
+  if (!u) return ''
+  if (/^(https?:|data:|blob:)/i.test(u)) return u
+  return FILE_BASE_URL + u
+}
 
 const request = axios.create({
   baseURL: BASE_URL,
@@ -62,6 +81,9 @@ request.interceptors.response.use(
 
 // ---- 业务封装 ----
 export const api = {
+  // 站点配置（系统名称 / Logo / 背景图；公开接口）
+  getSiteConfig: () => request.get('/site-config'),
+
   // 认证
   login: (data) => request.post('/auth/login', data),
   register: (data) => request.post('/auth/register', data),
@@ -94,7 +116,19 @@ export const api = {
   postResource: (id, formData) =>
     request.post(`/clubs/${id}/resources`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
-    })
+    }),
+
+  // 社团介绍词编辑（教师 / 管理员 / 社团负责人）
+  updateClubIntro: (id, intro) => request.put(`/clubs/${id}/intro`, { intro }),
+
+  // 材料撤展（保留记录但不再展示）与删除（作者本人 / 管理员 / 负责教师）
+  hideMaterial: (id) => request.post(`/materials/${id}/hide`),
+  deleteMaterial: (id) => request.delete(`/materials/${id}`),
+
+  // 课程资源：仅发布者本人或管理员可编辑 / 撤下 / 删除
+  updateResource: (id, data) => request.put(`/resources/${id}`, data),
+  hideResource: (id) => request.post(`/resources/${id}/hide`),
+  deleteResource: (id) => request.delete(`/resources/${id}`)
 }
 
 export default request

@@ -216,7 +216,7 @@ export default function Structure() {
       >
         <Form form={gradeForm} layout="vertical">
           <Form.Item name="name" label="年级名称" rules={[{ required: true, message: '请输入年级名称' }]}>
-            <Input placeholder="如：高一" />
+            <Input placeholder="如：25届" />
           </Form.Item>
         </Form>
       </Modal>

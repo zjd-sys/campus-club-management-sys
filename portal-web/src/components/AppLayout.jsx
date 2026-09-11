@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Layout, Menu, Avatar, Dropdown, Button, Spin } from 'antd'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { api } from '../utils/request'
+import { api, fileUrl } from '../utils/request'
 import { clearToken, isLogin } from '../utils/auth'
+import { useSiteConfig } from '../utils/site'
 
 const { Header, Content } = Layout
 
@@ -12,10 +13,34 @@ export default function AppLayout() {
 
   const [profile, setProfile] = useState(null)
   const [myClubs, setMyClubs] = useState([])
-  // Logo 预留：public/logo.png 存在时自动显示，缺失时回落为文字占位
+  // 站点配置（系统名称 / Logo）由管理后台维护
+  const site = useSiteConfig()
+  // Logo 加载失败时回落为文字占位
   const [logoOk, setLogoOk] = useState(true)
 
   const logged = isLogin()
+
+  // Logo 地址：优先使用后台配置，缺省回落 public/logo.png，再失败则显示文字占位
+  const logoSrc = site?.logoUrl ? fileUrl(site.logoUrl) : '/logo.png'
+  // 切换 Logo 地址时重置加载状态，避免先前的 404 影响配置生效
+  useEffect(() => {
+    setLogoOk(true)
+  }, [logoSrc])
+
+  // 系统名称同步为浏览器标题
+  useEffect(() => {
+    if (site?.siteName) document.title = site.siteName
+  }, [site])
+
+  // 全站背景图（后台可配置），未配置时沿用主题默认底色
+  const contentStyle = site?.backgroundUrl
+    ? {
+        backgroundImage: `url(${fileUrl(site.backgroundUrl)})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }
+    : undefined
 
   // 登录态或路由变化时刷新「我的社团」，保证加入/退出社团后导航同步
   useEffect(() => {
@@ -45,41 +70,21 @@ export default function AppLayout() {
     navigate('/')
   }
 
-  // ---------- 导航行为 ----------
-  const goMyClubs = () => {
-    if (!logged) {
-      navigate('/login')
-      return
-    }
-    if (myClubs.length === 1) {
-      navigate(`/club/${myClubs[0].id}`)
-    } else if (myClubs.length > 1) {
-      // 多个社团由 Menu 子菜单展开选择，这里兜底跳第一个
-      navigate(`/club/${myClubs[0].id}`)
-    } else {
-      navigate('/')
-    }
-  }
+  // 页面访问埋点：路由变化时上报一次（公开接口，游客亦可计数）
+  useEffect(() => {
+    api.recordVisit(location.pathname).catch(() => {})
+    // eslint-disable-next-line
+  }, [location.pathname])
 
+  // ---------- 导航行为 ----------
   const onMenuClick = ({ key }) => {
     if (key === 'home') navigate('/')
-    else if (key === 'myclubs') goMyClubs()
-    else if (key.startsWith('club-')) navigate(`/club/${key.slice(5)}`)
+    else if (key === 'myclubs') navigate('/my-clubs')
   }
-
-  const myClubItems =
-    myClubs.length > 1
-      ? {
-          children: myClubs.map((c) => ({
-            key: `club-${c.id}`,
-            label: c.name
-          }))
-        }
-      : {}
 
   const menuItems = [
     { key: 'home', label: '首页' },
-    { key: 'myclubs', label: '我的社团', ...myClubItems }
+    { key: 'myclubs', label: '我的社团' }
   ]
 
   // 选中态：首页 → home；位于自己社团页 → myclubs
@@ -97,10 +102,10 @@ export default function AppLayout() {
     <Layout style={{ minHeight: '100vh' }}>
       <Header className="app-header">
         {/* Logo 预留区（最左） */}
-        <div className="app-logo" onClick={() => navigate('/')} title="校园社团">
+        <div className="app-logo" onClick={() => navigate('/')} title={site?.siteName || '校园社团'}>
           {logoOk ? (
             <img
-              src="/logo.png"
+              src={logoSrc}
               alt="logo"
               className="app-logo-img"
               onError={() => setLogoOk(false)}
@@ -108,7 +113,7 @@ export default function AppLayout() {
           ) : (
             <>
               <div className="app-logo-badge">LOGO</div>
-              <span className="app-logo-text">校园社团</span>
+              <span className="app-logo-text">{site?.siteName || '校园社团'}</span>
             </>
           )}
         </div>
@@ -140,7 +145,7 @@ export default function AppLayout() {
           </Button>
         )}
       </Header>
-      <Content>
+      <Content style={contentStyle}>
         <div className="page-container">
           <Outlet />
         </div>

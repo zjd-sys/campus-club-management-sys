@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Carousel, Segmented, Input, Pagination, Empty, Spin } from 'antd'
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import { api } from '../utils/request'
-import { isLogin } from '../utils/auth'
+import { Carousel, Input, Pagination, Empty, Spin } from 'antd'
+import { useNavigate } from 'react-router-dom'
+import { api, fileUrl } from '../utils/request'
 import { PAGE_SIZE } from '../theme'
-import ClubCard from '../components/ClubCard'
+import { useSiteConfig, parseBanners } from '../utils/site'
+import ClubColumn from '../components/ClubColumn'
 
-const BANNERS = [
+const DEFAULT_BANNERS = [
   {
     title: '多彩社团，点亮校园',
     bg: 'linear-gradient(135deg,#4096ff,#67c23a)'
@@ -22,104 +22,84 @@ const BANNERS = [
 ]
 
 export default function Home() {
-  const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-  const logged = isLogin()
-  // 未登录时忽略 joined 视图，避免请求需鉴权接口触发 401 跳转
-  const view = searchParams.get('view') === 'joined' && logged ? 'joined' : 'all'
-
+  const site = useSiteConfig()
+  // 后台可配置首页横幅；未配置时使用默认渐变文案轮播
+  const bannerUrls = parseBanners(site?.bannerUrl)
   const [list, setList] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [keyword, setKeyword] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const fetchClubs = (view, page, keyword) => {
+  const fetchClubs = (p, kw) => {
     setLoading(true)
-    const p =
-      view === 'joined'
-        ? api.getJoinedClubs().then((arr) => ({ records: arr, total: arr.length }))
-        : api
-            .getClubs({ page, size: PAGE_SIZE, keyword })
-            .then((data) => ({ records: data.records, total: data.total }))
-    p.then(({ records, total }) => {
-      setList(records || [])
-      setTotal(total || 0)
-    })
+    api
+      .getClubs({ page: p, size: PAGE_SIZE, keyword: kw || undefined })
+      .then((data) => {
+        setList(data.records || [])
+        setTotal(data.total || 0)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }
 
   useEffect(() => {
-    setPage(1)
-    fetchClubs(view, 1, keyword)
+    fetchClubs(1, '')
     // eslint-disable-next-line
-  }, [view])
+  }, [])
 
   const onSearch = (v) => {
     setKeyword(v)
     setPage(1)
-    fetchClubs(view, 1, v)
+    fetchClubs(1, v)
   }
 
   const onPageChange = (p) => {
     setPage(p)
-    fetchClubs(view, p, keyword)
-  }
-
-  const onViewChange = (val) => {
-    if (val === 'joined') {
-      if (!logged) {
-        navigate('/login')
-        return
-      }
-      setSearchParams({ view: 'joined' })
-    } else {
-      setSearchParams({})
-    }
+    fetchClubs(p, keyword)
   }
 
   return (
     <div>
       <Carousel autoplay style={{ borderRadius: 8, overflow: 'hidden', marginBottom: 24 }}>
-        {BANNERS.map((b, i) => (
-          <div key={i}>
-            <div
-              style={{
-                height: 220,
-                background: b.bg,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontSize: 28,
-                fontWeight: 700
-              }}
-            >
-              {b.title}
-            </div>
-          </div>
-        ))}
+        {bannerUrls.length
+          ? bannerUrls.map((url, i) => (
+              <div key={i}>
+                <img
+                  src={fileUrl(url)}
+                  alt={`banner-${i}`}
+                  style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }}
+                />
+              </div>
+            ))
+          : DEFAULT_BANNERS.map((b, i) => (
+              <div key={i}>
+                <div
+                  style={{
+                    height: 220,
+                    background: b.bg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    fontSize: 28,
+                    fontWeight: 700
+                  }}
+                >
+                  {b.title}
+                </div>
+              </div>
+            ))}
       </Carousel>
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 16,
-          flexWrap: 'wrap',
-          gap: 12
-        }}
-      >
-        <Segmented
-          value={view}
-          onChange={onViewChange}
-          options={[
-            { label: '全校社团', value: 'all' },
-            { label: '我的社团', value: 'joined' }
-          ]}
-        />
+      <div className="home-section-head">
+        <div>
+          <h2 className="home-section-title">社团一览</h2>
+          <p className="home-section-desc">
+            这里集中展示学校各类社团的风采，涵盖学术、文艺、体育、公益等方向。目前共有 {total} 个社团正在招新，点击栏目即可查看详情并了解入社方式。
+          </p>
+        </div>
         <Input.Search
           placeholder="搜索社团"
           allowClear
@@ -134,12 +114,10 @@ export default function Home() {
         </div>
       ) : list.length ? (
         <>
-          <div className="club-grid">
-            {list.map((club) => (
-              <ClubCard key={club.id} club={club} />
-            ))}
-          </div>
-          {view === 'all' && total > PAGE_SIZE && (
+          {list.map((club) => (
+            <ClubColumn key={club.id} club={club} />
+          ))}
+          {total > PAGE_SIZE && (
             <div style={{ textAlign: 'center', marginTop: 24 }}>
               <Pagination
                 current={page}

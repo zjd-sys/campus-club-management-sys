@@ -16,6 +16,7 @@ public class MaterialVO {
     /** 多张图片逗号分隔 */
     private String imageUrl;
     private String videoUrl;
+    private String docUrl;
     private LocalDateTime submitTime;
     private String reviewStatus;
     private Integer displayStatus;

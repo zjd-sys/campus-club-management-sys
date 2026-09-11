@@ -28,15 +28,20 @@ public class AuthService {
     private final LoginGuardService loginGuard;
     private final CaptchaService captchaService;
     private final SecurityProps props;
+    private final AdminAccountService adminAccountService;
+    private final UserAccountRegistrar registrar;
 
     public AuthService(UserMapper userMapper, PasswordEncoder encoder, JwtUtil jwtUtil,
-                       LoginGuardService loginGuard, CaptchaService captchaService, SecurityProps props) {
+                       LoginGuardService loginGuard, CaptchaService captchaService, SecurityProps props,
+                       AdminAccountService adminAccountService, UserAccountRegistrar registrar) {
         this.userMapper = userMapper;
         this.encoder = encoder;
         this.jwtUtil = jwtUtil;
         this.loginGuard = loginGuard;
         this.captchaService = captchaService;
         this.props = props;
+        this.adminAccountService = adminAccountService;
+        this.registrar = registrar;
     }
 
     public LoginResult login(LoginRequest req, HttpServletRequest request) {
@@ -82,7 +87,7 @@ public class AuthService {
 
         // 6) 成功：清零失败计数，签发令牌
         loginGuard.onSuccess(user);
-        String token = jwtUtil.generate(user.getId(), user.getRole());
+        String token = jwtUtil.generate(user.getId(), user.getRole(), adminLevelOf(user));
         return toResult(token, user);
     }
 
@@ -92,14 +97,23 @@ public class AuthService {
         if (!loginGuard.allowIp(ip)) {
             throw new BizException(429, "登录请求过于频繁，请稍后再试");
         }
-        // 密钥优先校验（双重验证）
-        if (req.getAdminSecret() == null || !req.getAdminSecret().equals(props.adminSecret)) {
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getUsername, req.getUsername()));
+        // 令牌优先校验（双重验证）：每个管理员可使用各自独立令牌；
+        // 账号未配置独立令牌时回落到全局密钥（兼容旧数据与首次部署）。
+        boolean secretOk = (user != null && "admin".equals(user.getRole()))
+                ? adminAccountService.verify(user, req.getAdminSecret())
+                : (req.getAdminSecret() != null && req.getAdminSecret().equals(props.adminSecret));
+        if (!secretOk) {
             loginGuard.applyFailureDelay();
             throw new BizException("管理员密钥错误");
         }
-        User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
-                .eq(User::getUsername, req.getUsername()));
         if (user == null || !"admin".equals(user.getRole())) {
+            loginGuard.applyFailureDelay();
+            throw new BizException("账号或密码错误");
+        }
+        // 被超管禁用/删除的管理员：立即无法登录（与门户登录保持一致的模糊提示）
+        if (!"normal".equals(user.getStatus())) {
             loginGuard.applyFailureDelay();
             throw new BizException("账号或密码错误");
         }
@@ -113,14 +127,13 @@ public class AuthService {
             throw new BizException("账号或密码错误");
         }
         loginGuard.onSuccess(user);
-        String token = jwtUtil.generate(user.getId(), user.getRole());
+        String token = jwtUtil.generate(user.getId(), user.getRole(), adminLevelOf(user));
         return toResult(token, user);
     }
 
     public LoginResult register(RegisterRequest req) {
-        if (!"student".equals(req.getRole()) && !"teacher".equals(req.getRole())) {
-            throw new BizException("仅支持注册学生或教师账号");
-        }
+        // 安全约束：门户注册仅允许学生账号。教师权限由后台（管理员）分配，
+        // 前端即使传入 role=teacher 也会被强制覆盖为学生，杜绝越权注册教师。
         if (req.getUsername() == null || req.getUsername().isBlank()
                 || req.getPassword() == null || req.getPassword().length() < 6) {
             throw new BizException("账号或密码不合法（密码至少6位）");
@@ -134,7 +147,7 @@ public class AuthService {
         u.setUsername(req.getUsername());
         u.setPassword(encoder.encode(req.getPassword()));
         u.setName(req.getName());
-        u.setRole(req.getRole());
+        u.setRole("student");
         u.setGradeId(req.getGradeId());
         u.setClazzId(req.getClazzId());
         u.setAge(req.getAge());
@@ -142,9 +155,9 @@ public class AuthService {
         u.setStatus("normal");
         u.setFailCount(0);
         u.setVersion(0);
-        u.setDeleted(0);
-        userMapper.insert(u);
-        // 注册后自动登录
+        // 统一落库：同名账号曾被删除时原地复活，避免用户名唯一索引冲突
+        registrar.persist(u);
+        // 注册后自动登录（学生）
         String token = jwtUtil.generate(u.getId(), u.getRole());
         return toResult(token, u);
     }
@@ -161,7 +174,18 @@ public class AuthService {
         r.setName(u.getName());
         r.setUserId(u.getId());
         r.setUsername(u.getUsername());
+        r.setAdminLevel(adminLevelOf(u));
         return r;
+    }
+
+    /**
+     * 解析账号的管理员层级：仅 role=admin 返回 super / normal，其余返回 null。
+     * 历史数据 admin_level 为空时视为超管（与 AdminAccountService.isSuper 保持一致）。
+     */
+    private String adminLevelOf(User u) {
+        if (u == null || !"admin".equals(u.getRole())) return null;
+        String level = u.getAdminLevel();
+        return (level == null || level.isBlank()) ? "super" : level;
     }
 
     private String clientIp(HttpServletRequest request) {

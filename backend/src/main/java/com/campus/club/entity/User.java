@@ -34,6 +34,21 @@ public class User {
     /** 状态：normal / disabled */
     private String status;
 
+    /**
+     * 管理员独立密钥（BCrypt 密文），仅 role=admin 使用。
+     * 让每个管理员拥有各自的登录令牌，便于超管创建/重置管理员令牌；
+     * 为空时回落到全局配置 jwt.admin-secret（兼容旧数据）。
+     */
+    private String adminSecret;
+
+    /**
+     * 管理员层级，仅 role=admin 使用：super=超级管理员 / normal=普通管理员。
+     * <p>超级管理员可管理整个管理员组（新增/删除管理员、设置层级、启停、重置他人令牌）；
+     * 普通管理员之间互不可管理，只能修改自身令牌。</p>
+     * <p>历史数据该列为空时按「超级管理员」兼容处理（升级前所有管理员权限相同）。</p>
+     */
+    private String adminLevel;
+
     /** 登录安全防护字段 */
     private Integer failCount;
     private LocalDateTime lockUntil;

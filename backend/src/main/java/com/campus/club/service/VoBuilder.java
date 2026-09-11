@@ -55,6 +55,7 @@ public class VoBuilder {
         v.setDescription(m.getDescription());
         v.setImageUrl(m.getImageUrl());
         v.setVideoUrl(m.getVideoUrl());
+        v.setDocUrl(m.getDocUrl());
         v.setSubmitTime(m.getSubmitTime());
         v.setReviewStatus(m.getReviewStatus());
         v.setDisplayStatus(m.getDisplayStatus());

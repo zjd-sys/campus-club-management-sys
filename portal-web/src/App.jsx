@@ -5,6 +5,7 @@ import Register from './pages/Register'
 import Home from './pages/Home'
 import ClubDetail from './pages/ClubDetail'
 import Profile from './pages/Profile'
+import MyClubs from './pages/MyClubs'
 
 /**
  * 路由权限说明：
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/club/:id" element={<ClubDetail />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/my-clubs" element={<MyClubs />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

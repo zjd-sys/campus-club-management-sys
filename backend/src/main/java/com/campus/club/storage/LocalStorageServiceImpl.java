@@ -31,7 +31,9 @@ public class LocalStorageServiceImpl implements StorageService {
             String ext = original.contains(".") ? original.substring(original.lastIndexOf('.')) : "";
             String name = UUID.randomUUID().toString().replace("-", "") + ext;
             String dirName = (subDir == null || subDir.isBlank()) ? "common" : subDir;
-            Path dir = Paths.get(localPath, dirName);
+            // 必须用绝对路径：MultipartFile.transferTo 对相对路径会相对 Tomcat 临时目录解析，
+            // 与 Files.createDirectories 的工作目录不一致，会导致 FileNotFoundException。
+            Path dir = Paths.get(localPath, dirName).toAbsolutePath().normalize();
             Files.createDirectories(dir);
             File target = dir.resolve(name).toFile();
             file.transferTo(target);
@@ -55,7 +57,7 @@ public class LocalStorageServiceImpl implements StorageService {
             while (rel.startsWith(File.separator)) {
                 rel = rel.substring(1);
             }
-            Path p = Paths.get(localPath, rel);
+            Path p = Paths.get(localPath, rel).toAbsolutePath().normalize();
             Files.deleteIfExists(p);
         } catch (Exception ignored) {
             // 删除失败不影响主流程

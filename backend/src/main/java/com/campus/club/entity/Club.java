@@ -23,4 +23,15 @@ public class Club {
     private LocalDateTime createTime;
     @TableLogic
     private Integer deleted;
+
+    /** 非数据库字段：负责教师姓名（详情接口填充，供展示页显示） */
+    @TableField(exist = false)
+    private String teacherName;
+
+    /**
+     * 非数据库字段：当前登录用户是否可编辑社团介绍词。
+     * 规则：管理员 / 本社团负责教师 / 本社团负责人（identity=leader 的有权限学生）。
+     */
+    @TableField(exist = false)
+    private Boolean canEditIntro;
 }
